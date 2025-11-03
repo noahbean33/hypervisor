@@ -9,24 +9,47 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="Source Files\Memory">
+      <UniqueIdentifier>{558c8229-1c77-4eb0-807f-f7db9e11455c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assembly">
+      <UniqueIdentifier>{6d6e64b5-3942-4270-9f6d-cf370eedaab1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\VMX">
+      <UniqueIdentifier>{aabeca50-1c14-442c-8268-ece54ed257d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Common">
+      <UniqueIdentifier>{fe16b9fa-aee2-467d-9f51-643057d24250}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.c">
+    <ClCompile Include="Memory.c">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Driver.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Processor.c">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="VMX.c">
+      <Filter>Source Files\VMX</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="SourceAsm.asm">
-      <Filter>Source Files</Filter>
-    </MASM>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Source.h">
+    <ClInclude Include="Vmx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MSR.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Driver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="Main.asm">
+      <Filter>Assembly</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

@@ -77,13 +77,18 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.c" />
+    <ClCompile Include="Memory.c" />
+    <ClCompile Include="Driver.c" />
+    <ClCompile Include="Processor.c" />
+    <ClCompile Include="VMX.c" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="SourceAsm.asm" />
+    <MASM Include="Main.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source.h" />
+    <ClInclude Include="Vmx.h" />
+    <ClInclude Include="MSR.h" />
+    <ClInclude Include="Driver.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
