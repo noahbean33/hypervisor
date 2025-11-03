@@ -3,6 +3,7 @@
 #include <wdm.h>
 #include "Driver.h"
 #include "Vmx.h"
+#include "EPT.h"
 
 NTSTATUS
 DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
@@ -44,6 +45,11 @@ DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
         IoCreateSymbolicLink(&DosDeviceName, &DriverName);
     }
+
+    //
+    // Initialize EPT
+    //
+    InitializeEptp();
 
     return NtStatus;
 }

@@ -77,6 +77,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EPT.c" />
     <ClCompile Include="Memory.c" />
     <ClCompile Include="Driver.c" />
     <ClCompile Include="Processor.c" />
@@ -86,6 +87,7 @@
     <MASM Include="Main.asm" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EPT.h" />
     <ClInclude Include="Vmx.h" />
     <ClInclude Include="MSR.h" />
     <ClInclude Include="Driver.h" />

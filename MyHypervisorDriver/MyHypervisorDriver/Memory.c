@@ -72,7 +72,7 @@ AllocateVmxonRegion(IN VIRTUAL_MACHINE_STATE * GuestState)
         return FALSE;
     }
 
-    GuestState->VmxonRegion = AlignedPhysicalBuffer;
+    g_GuestState->VmxonRegion = AlignedPhysicalBuffer;
 
     return TRUE;
 }
@@ -131,7 +131,7 @@ AllocateVmcsRegion(IN VIRTUAL_MACHINE_STATE * GuestState)
         return FALSE;
     }
 
-    GuestState->VmcsRegion = AlignedPhysicalBuffer;
+    g_GuestState->VmcsRegion = AlignedPhysicalBuffer;
 
     return TRUE;
 }
