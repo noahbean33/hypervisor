@@ -1,8 +1,8 @@
 #include <ntddk.h>
 #include <wdf.h>
 #include <wdm.h>
-#include "Driver.h"
-#include "Vmx.h"
+#include "Common.h"
+#include "VMX.h"
 #include "EPT.h"
 
 NTSTATUS
@@ -13,27 +13,20 @@ DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     PDEVICE_OBJECT DeviceObject = NULL;
     UNICODE_STRING DriverName, DosDeviceName;
 
-    DbgPrint("[*] DriverEntry Called.");
+    DbgPrint("[*] DriverEntry Called.\n");
 
     RtlInitUnicodeString(&DriverName, L"\\Device\\MyHypervisorDevice");
 
     RtlInitUnicodeString(&DosDeviceName, L"\\DosDevices\\MyHypervisorDevice");
 
-    NtStatus = IoCreateDevice(DriverObject,
-                              0,
-                              &DriverName,
-                              FILE_DEVICE_UNKNOWN,
-                              FILE_DEVICE_SECURE_OPEN,
-                              FALSE,
-                              &DeviceObject);
+    NtStatus = IoCreateDevice(DriverObject, 0, &DriverName, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, FALSE, &DeviceObject);
 
     if (NtStatus == STATUS_SUCCESS)
     {
         for (Index = 0; Index < IRP_MJ_MAXIMUM_FUNCTION; Index++)
-
             DriverObject->MajorFunction[Index] = DrvUnsupported;
 
-        DbgPrint("[*] Setting Devices major functions.");
+        DbgPrint("[*] Setting Devices major functions.\n");
 
         DriverObject->MajorFunction[IRP_MJ_CLOSE]          = DrvClose;
         DriverObject->MajorFunction[IRP_MJ_CREATE]         = DrvCreate;
@@ -45,11 +38,31 @@ DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
         IoCreateSymbolicLink(&DosDeviceName, &DriverName);
     }
+    __try
+    {
+        //
+        // Initiating EPTP and VMX
+        //
+        PEPTP EPTP = InitializeEptp();
 
-    //
-    // Initialize EPT
-    //
-    InitializeEptp();
+        InitiateVmx();
+
+        for (size_t i = 0; i < (100 * PAGE_SIZE) - 1; i++)
+        {
+            void * TempAsm = "\xF4";
+            memcpy(g_VirtualGuestMemoryAddress + i, TempAsm, 1);
+        }
+
+        //
+        // Launching VM for Test (in the 0th virtual processor)
+        //
+        int ProcessorID = 0;
+
+        LaunchVm(ProcessorID, EPTP);
+    }
+    __except (GetExceptionCode())
+    {
+    }
 
     return NtStatus;
 }
@@ -58,28 +71,24 @@ VOID
 DrvUnload(PDRIVER_OBJECT DriverObject)
 {
     UNICODE_STRING DosDeviceName;
-
-    DbgPrint("[*] DrvUnload Called.");
-
+    DbgPrint("[*] DrvUnload Called.\n");
     RtlInitUnicodeString(&DosDeviceName, L"\\DosDevices\\MyHypervisorDevice");
     IoDeleteSymbolicLink(&DosDeviceName);
-
     IoDeleteDevice(DriverObject->DeviceObject);
 }
 
 NTSTATUS
 DrvCreate(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[*] DrvCreate Called !");
+    DbgPrint("[*] DrvCreate Called !\n");
 
-    if (InitializeVmx())
-    {
-        DbgPrint("[*] VMX Initiated Successfully.");
-    }
+    //
+    // Call VMPTRST
+    //
+    //	VmptrstInstruction();
 
     Irp->IoStatus.Status      = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
-
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
     return STATUS_SUCCESS;
@@ -88,7 +97,7 @@ DrvCreate(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 NTSTATUS
 DrvRead(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[*] Not implemented yet :( !");
+    DbgPrint("[*] Not implemented yet :( !\n");
 
     Irp->IoStatus.Status      = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
@@ -100,7 +109,7 @@ DrvRead(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 NTSTATUS
 DrvWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[*] Not implemented yet :( !");
+    DbgPrint("[*] Not implemented yet :( !\n");
 
     Irp->IoStatus.Status      = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
@@ -112,7 +121,7 @@ DrvWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 NTSTATUS
 DrvClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[*] DrvClose Called !");
+    DbgPrint("[*] DrvClose Called !\n");
 
     //
     // executing VMXOFF on every logical processor
@@ -129,7 +138,7 @@ DrvClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 NTSTATUS
 DrvUnsupported(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[*] This function is not supported :( !");
+    DbgPrint("[*] This function is not supported :( !\n");
 
     Irp->IoStatus.Status      = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
@@ -541,6 +550,7 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         //
         // Write data to be sent to the user in this buffer
         //
+
         RtlCopyBytes(Buffer, Data, OutBufLength);
 
         DbgPrint("\tData to User : ");
@@ -552,6 +562,7 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         // NOTE: Changes made to the  SystemBuffer are not copied
         // to the user input buffer by the I/O manager
         //
+
         break;
 
     default:
@@ -559,6 +570,7 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         //
         // The specified I/O control code is unrecognized by this driver.
         //
+
         NtStatus = STATUS_INVALID_DEVICE_REQUEST;
         DbgPrint("ERROR: unrecognized IOCTL %x\n",
                  IrpStack->Parameters.DeviceIoControl.IoControlCode);

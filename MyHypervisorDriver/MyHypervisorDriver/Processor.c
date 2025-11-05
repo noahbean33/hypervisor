@@ -2,20 +2,21 @@
 #include <wdf.h>
 #include <wdm.h>
 #include "MSR.h"
+#include "Common.h"
+#include "VMX.h"
 
 int
-MathPower(int Base, int Exponent)
+MathPower(int Base, int Exp)
 {
     int Result = 1;
     for (;;)
     {
-        if (Exponent & 1)
+        if (Exp & 1)
         {
             Result *= Base;
         }
-
-        Exponent >>= 1;
-        if (!Exponent)
+        Exp >>= 1;
+        if (!Exp)
         {
             break;
         }

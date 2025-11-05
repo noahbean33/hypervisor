@@ -1,8 +1,10 @@
 #include <ntddk.h>
-#include "Vmx.h"
+#include "VMX.h"
 #include "EPT.h"
 
-UINT64
+UINT64 g_VirtualGuestMemoryAddress;
+
+PEPTP
 InitializeEptp()
 {
     PAGED_CODE();
@@ -19,7 +21,7 @@ InitializeEptp()
     RtlZeroMemory(EPTPointer, PAGE_SIZE);
 
     //
-    //	Allocate EPT PML4
+    // Allocate EPT PML4
     //
     PEPT_PML4E EptPml4 = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, POOLTAG);
     if (!EptPml4)
@@ -30,7 +32,7 @@ InitializeEptp()
     RtlZeroMemory(EptPml4, PAGE_SIZE);
 
     //
-    //	Allocate EPT Page-Directory-Pointer-Table
+    // Allocate EPT Page-Directory-Pointer-Table
     //
     PEPT_PDPTE EptPdpt = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, POOLTAG);
     if (!EptPdpt)
@@ -42,7 +44,7 @@ InitializeEptp()
     RtlZeroMemory(EptPdpt, PAGE_SIZE);
 
     //
-    //	Allocate EPT Page-Directory
+    // Allocate EPT Page-Directory
     //
     PEPT_PDE EptPd = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, POOLTAG);
 
@@ -56,7 +58,7 @@ InitializeEptp()
     RtlZeroMemory(EptPd, PAGE_SIZE);
 
     //
-    //	Allocate EPT Page-Table
+    // Allocate EPT Page-Table
     //
     PEPT_PTE EptPt = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, POOLTAG);
 
@@ -74,8 +76,12 @@ InitializeEptp()
     // Setup PT by allocating two pages Continuously
     // We allocate two pages because we need 1 page for our RIP to start and 1 page for RSP 1 + 1 = 2
     //
-    const int PagesToAllocate = 10;
-    UINT64    GuestMemory     = ExAllocatePoolWithTag(NonPagedPool, PagesToAllocate * PAGE_SIZE, POOLTAG);
+    const int PagesToAllocate = 100;
+
+    UINT64 GuestMemory = ExAllocatePoolWithTag(NonPagedPool, PagesToAllocate * PAGE_SIZE, POOLTAG);
+
+    g_VirtualGuestMemoryAddress = GuestMemory;
+
     RtlZeroMemory(GuestMemory, PagesToAllocate * PAGE_SIZE);
 
     for (size_t i = 0; i < PagesToAllocate; i++)

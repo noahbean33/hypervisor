@@ -1,5 +1,31 @@
 #pragma once
 
+#define MAX_NUM_OF_PAGES 0x20000
+#define EPTE_READ        0x1
+#define EPTE_READEXEC    0x5
+#define EPTE_WRITE       0x2
+#define EPTE_EXECUTE     0x4
+#define EPTE_ATTR_MASK   0xFFF
+#define EPTE_MT_SHIFT    3
+#define EPT_LEVELS       4
+
+#define CACHE_TYPE_UC       0x00 /* Uncacheable */
+#define CACHE_TYPE_WC       0x01 /* Write-Combining */
+#define CACHE_TYPE_WT       0x04 /* Writethrough */
+#define CACHE_TYPE_WP       0x05 /* Write-Protect */
+#define CACHE_TYPE_WB       0x06 /* Writeback */
+#define CACHE_TYPE_UC_MINUS 0x07 /* UC minus */
+#define GMTRR_VCNT          MTRR_VCNT_MAX
+
+#define MAX_NUM_OF_PAGES 0x20000
+#define EPTE_READ        0x1
+#define EPTE_READEXEC    0x5
+#define EPTE_WRITE       0x2
+#define EPTE_EXECUTE     0x4
+#define EPTE_ATTR_MASK   0xFFF
+#define EPTE_MT_SHIFT    3
+#define EPT_LEVELS       4
+
 //
 // See Table 24-8. Format of Extended-Page-Table Pointer
 //
@@ -108,12 +134,6 @@ typedef union _EPT_PTE
     } Fields;
 } EPT_PTE, *PEPT_PTE;
 
-enum INVEPT_TYPE
-{
-    SINGLE_CONTEXT = 0x00000001,
-    ALL_CONTEXTS   = 0x00000002,
-};
-
 typedef struct INVEPT_DESC
 {
     EPTP   Eptp;
@@ -121,9 +141,18 @@ typedef struct INVEPT_DESC
 } INVEPT_DESC, *PINVEPT_DESC;
 
 //
+// Enums
+//
+enum INVEPT_TYPE
+{
+    SINGLE_CONTEXT = 0x00000001,
+    ALL_CONTEXTS   = 0x00000002,
+};
+
+//
 // EPT Functions
 //
-UINT64
+PEPTP
 InitializeEptp();
 
 unsigned char
