@@ -2,62 +2,59 @@
 #include <ntddk.h>
 #include <wdf.h>
 #include <wdm.h>
+#include "EPT.h"
 
 //
-// Global variables
+// Globals
 //
 UINT64 g_StackPointerForReturning;
 UINT64 g_BasePointerForReturning;
 
-//
-// Drivers
-//
-NTSTATUS
-DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
+/* Trap/fault mnemonics */
+#define TRAP_DIVIDE_ERROR    0
+#define TRAP_DEBUG           1
+#define TRAP_NMI             2
+#define TRAP_INT3            3
+#define TRAP_OVERFLOW        4
+#define TRAP_BOUNDS          5
+#define TRAP_INVALID_OP      6
+#define TRAP_NO_DEVICE       7
+#define TRAP_DOUBLE_FAULT    8
+#define TRAP_COPRO_SEG       9
+#define TRAP_INVALID_TSS     10
+#define TRAP_NO_SEGMENT      11
+#define TRAP_STACK_ERROR     12
+#define TRAP_GP_FAULT        13
+#define TRAP_PAGE_FAULT      14
+#define TRAP_SPURIOUS_INT    15
+#define TRAP_COPRO_ERROR     16
+#define TRAP_ALIGNMENT_CHECK 17
+#define TRAP_MACHINE_CHECK   18
+#define TRAP_SIMD_ERROR      19
+#define TRAP_DEFERRED_NMI    31
 
-VOID
-DrvUnload(PDRIVER_OBJECT DriverObject);
+/* Exception/NMI-related information */
+#define INTR_INFO_VECTOR_MASK       0xff       /* bits 0:7 */
+#define INTR_INFO_INTR_TYPE_MASK    0x700      /* bits 8:10 */
+#define INTR_INFO_DELIVER_CODE_MASK 0x800      /* bit 11 must be set to push error code on guest stack*/
+#define INTR_INFO_VALID_MASK        0x80000000 /* bit 31 must be set to identify valid events */
+#define INTR_TYPE_EXT_INTR          (0 << 8)   /* external interrupt */
+#define INTR_TYPE_NMI               (2 << 8)   /* NMI */
+#define INTR_TYPE_HW_EXCEPTION      (3 << 8)   /* hardware exception */
+#define INTR_TYPE_SW_EXCEPTION      (6 << 8)   /* software exception */
 
-NTSTATUS
-DrvCreate(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+#define FLAGS_CF_MASK     (1 << 0)
+#define FLAGS_PF_MASK     (1 << 2)
+#define FLAGS_AF_MASK     (1 << 4)
+#define FLAGS_ZF_MASK     (1 << 6)
+#define FLAGS_SF_MASK     (1 << 7)
+#define FLAGS_TF_MASK     (1 << 8)
+#define FLAGS_IF_MASK     (1 << 9)
+#define FLAGS_RF_MASK     (1 << 16)
+#define FLAGS_TO_ULONG(f) (*(ULONG32 *)(&f))
 
-NTSTATUS
-DrvRead(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
-
-NTSTATUS
-DrvWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
-
-NTSTATUS
-DrvClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
-
-NTSTATUS
-DrvUnsupported(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
-
-NTSTATUS
-DrvIoctlDispatcher(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
-
-//
-// General functions
-//
-VOID
-PrintChars(_In_reads_(CountChars) PCHAR BufferAddress, _In_ size_t CountChars);
-VOID
-PrintIrpInfo(PIRP Irp);
-
-//
-// Segment registers
-//
-USHORT  GetCs(VOID);
-USHORT  GetDs(VOID);
-USHORT  GetEs(VOID);
-USHORT  GetSs(VOID);
-USHORT  GetFs(VOID);
-USHORT  GetGs(VOID);
-USHORT  GetLdtr(VOID);
-USHORT  GetTr(VOID);
-USHORT  GetIdtLimit(VOID);
-USHORT  GetGdtLimit(VOID);
-ULONG64 GetRflags(VOID);
+#define DPL_USER   3
+#define DPL_SYSTEM 0
 
 typedef struct _CPUID
 {
@@ -127,18 +124,6 @@ typedef struct _SEGMENT_DESCRIPTOR
     UCHAR  BASE2;
 } SEGMENT_DESCRIPTOR, *PSEGMENT_DESCRIPTOR;
 
-enum SEGREGS
-{
-    ES = 0,
-    CS,
-    SS,
-    DS,
-    FS,
-    GS,
-    LDTR,
-    TR
-};
-
 typedef struct _GUEST_REGS
 {
     ULONG64 rax; // 0x00         // NOT VALID FOR SVM
@@ -190,3 +175,101 @@ typedef union _RFLAGS
 
     ULONG64 Content;
 } RFLAGS;
+
+//
+// Enums
+//
+enum SEGREGS
+{
+    ES = 0,
+    CS,
+    SS,
+    DS,
+    FS,
+    GS,
+    LDTR,
+    TR
+};
+
+//
+// Types
+//
+typedef void (*PFUNC)(IN ULONG ProcessorID, IN PEPTP EPTP);
+
+typedef void (*PFUNCTerminate)(void);
+
+//
+// Assembly functions
+//
+USHORT GetCs(VOID);
+
+USHORT GetDs(VOID);
+
+USHORT GetEs(VOID);
+
+USHORT GetSs(VOID);
+
+USHORT GetFs(VOID);
+
+USHORT GetGs(VOID);
+
+USHORT GetLdtr(VOID);
+
+USHORT GetTr(VOID);
+
+USHORT GetIdtLimit(VOID);
+
+USHORT GetGdtLimit(VOID);
+
+ULONG64 GetRflags(VOID);
+
+//
+// General functions
+//
+VOID
+SetBit(PVOID Addr, UINT64 bit, BOOLEAN Set);
+
+VOID
+GetBit(PVOID Addr, UINT64 bit);
+
+NTSTATUS
+DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING pRegistryPath);
+
+VOID
+DrvUnload(PDRIVER_OBJECT DriverObject);
+
+NTSTATUS
+DrvCreate(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS
+DrvRead(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS
+DrvWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS
+DrvClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS
+DrvUnsupported(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+NTSTATUS
+DrvIOCTLDispatcher(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp);
+
+VOID
+PrintChars(_In_reads_(CountChars) PCHAR BufferAddress, _In_ size_t CountChars);
+
+VOID
+PrintIrpInfo(PIRP Irp);
+
+BOOLEAN
+RunOnProcessor(ULONG ProcessorNumber, PEPTP EPTP, PFUNC Routine);
+
+BOOLEAN
+RunOnProcessorForTerminateVMX(ULONG ProcessorNumber);
+
+UINT64
+VirtualToPhysicalAddress(void * va);
+
+UINT64
+PhysicalToVirtualAddress(UINT64 pa);

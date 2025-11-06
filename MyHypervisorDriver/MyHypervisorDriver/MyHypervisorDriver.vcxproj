@@ -86,6 +86,7 @@
   <ItemGroup>
     <MASM Include="Main.asm" />
     <MASM Include="VMExitHandler.asm" />
+    <MASM Include="VMXState.asm" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VMX.h" />

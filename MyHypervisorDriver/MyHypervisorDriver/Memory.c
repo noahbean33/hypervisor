@@ -38,9 +38,11 @@ AllocateVmxonRegion(VIRTUAL_MACHINE_STATE * GuestState)
     PHYSICAL_ADDRESS Highest = {0}, Lowest = {0};
     Highest.QuadPart = ~0;
 
+    // BYTE* Buffer = MmAllocateContiguousMemorySpecifyCache(VMXONSize + ALIGNMENT_PAGE_SIZE, Lowest, Highest, Lowest, MmNonCached);
+
     if (Buffer == NULL)
     {
-        DbgPrint("[*] Error : Couldn't Allocate Buffer for VMXON Region.");
+        DbgPrint("[*] Error : Couldn't Allocate Buffer for VMXON Region.\n");
         return FALSE; // ntStatus = STATUS_INSUFFICIENT_RESOURCES;
     }
     UINT64 PhysicalBuffer = VirtualToPhysicalAddress(Buffer);
@@ -53,9 +55,9 @@ AllocateVmxonRegion(VIRTUAL_MACHINE_STATE * GuestState)
 
     UINT64 AlignedVirtualBuffer = (BYTE *)((ULONG_PTR)(Buffer + ALIGNMENT_PAGE_SIZE - 1) & ~(ALIGNMENT_PAGE_SIZE - 1));
 
-    DbgPrint("[*] Virtual allocated buffer for VMXON at %llx", Buffer);
-    DbgPrint("[*] Virtual aligned allocated buffer for VMXON at %llx", AlignedVirtualBuffer);
-    DbgPrint("[*] Aligned physical buffer allocated for VMXON at %llx", AlignedPhysicalBuffer);
+    DbgPrint("[*] Virtual allocated buffer for VMXON at %llx\n", Buffer);
+    DbgPrint("[*] Virtual aligned allocated buffer for VMXON at %llx\n", AlignedVirtualBuffer);
+    DbgPrint("[*] Aligned physical buffer allocated for VMXON at %llx\n", AlignedPhysicalBuffer);
 
     //
     // get IA32_VMX_BASIC_MSR RevisionId
@@ -64,7 +66,7 @@ AllocateVmxonRegion(VIRTUAL_MACHINE_STATE * GuestState)
 
     basic.All = __readmsr(MSR_IA32_VMX_BASIC);
 
-    DbgPrint("[*] MSR_IA32_VMX_BASIC (MSR 0x480) Revision Identifier %llx", basic.Fields.RevisionIdentifier);
+    DbgPrint("[*] MSR_IA32_VMX_BASIC (MSR 0x480) Revision Identifier %llx\n", basic.Fields.RevisionIdentifier);
 
     //
     // Changing Revision Identifier
@@ -78,7 +80,7 @@ AllocateVmxonRegion(VIRTUAL_MACHINE_STATE * GuestState)
         return FALSE;
     }
 
-    GuestState->VmxoRegion = AlignedPhysicalBuffer;
+    GuestState->VmxonRegion = AlignedPhysicalBuffer;
 
     return TRUE;
 }
@@ -101,10 +103,13 @@ AllocateVmcsRegion(VIRTUAL_MACHINE_STATE * GuestState)
     PHYSICAL_ADDRESS Highest = {0}, Lowest = {0};
     Highest.QuadPart = ~0;
 
+    // BYTE* Buffer = MmAllocateContiguousMemorySpecifyCache(VMXONSize + ALIGNMENT_PAGE_SIZE, Lowest, Highest, Lowest, MmNonCached);
+
     UINT64 PhysicalBuffer = VirtualToPhysicalAddress(Buffer);
+
     if (Buffer == NULL)
     {
-        DbgPrint("[*] Error : Couldn't Allocate Buffer for VMCS Region.");
+        DbgPrint("[*] Error : Couldn't Allocate Buffer for VMCS Region.\n");
         return FALSE; // ntStatus = STATUS_INSUFFICIENT_RESOURCES;
     }
 
@@ -116,9 +121,9 @@ AllocateVmcsRegion(VIRTUAL_MACHINE_STATE * GuestState)
 
     UINT64 AlignedVirtualBuffer = (BYTE *)((ULONG_PTR)(Buffer + ALIGNMENT_PAGE_SIZE - 1) & ~(ALIGNMENT_PAGE_SIZE - 1));
 
-    DbgPrint("[*] Virtual allocated buffer for VMCS at %llx", Buffer);
-    DbgPrint("[*] Virtual aligned allocated buffer for VMCS at %llx", AlignedVirtualBuffer);
-    DbgPrint("[*] Aligned physical buffer allocated for VMCS at %llx", AlignedPhysicalBuffer);
+    DbgPrint("[*] Virtual allocated buffer for VMCS at %llx\n", Buffer);
+    DbgPrint("[*] Virtual aligned allocated buffer for VMCS at %llx\n", AlignedVirtualBuffer);
+    DbgPrint("[*] Aligned physical buffer allocated for VMCS at %llx\n", AlignedPhysicalBuffer);
 
     //
     // get IA32_VMX_BASIC_MSR RevisionId
@@ -127,7 +132,7 @@ AllocateVmcsRegion(VIRTUAL_MACHINE_STATE * GuestState)
 
     basic.All = __readmsr(MSR_IA32_VMX_BASIC);
 
-    DbgPrint("[*] MSR_IA32_VMX_BASIC (MSR 0x480) Revision Identifier %llx", basic.Fields.RevisionIdentifier);
+    DbgPrint("[*] MSR_IA32_VMX_BASIC (MSR 0x480) Revision Identifier %llx\n", basic.Fields.RevisionIdentifier);
 
     //
     // Changing Revision Identifier
@@ -135,6 +140,54 @@ AllocateVmcsRegion(VIRTUAL_MACHINE_STATE * GuestState)
     *(UINT64 *)AlignedVirtualBuffer = basic.Fields.RevisionIdentifier;
 
     GuestState->VmcsRegion = AlignedPhysicalBuffer;
+
+    return TRUE;
+}
+
+BOOLEAN
+AllocateVmmStack(int ProcessorID)
+{
+    //
+    // Allocate stack for the VM Exit Handler
+    //
+    UINT64 VmmStackVa                  = ExAllocatePoolWithTag(NonPagedPool, VMM_STACK_SIZE, POOLTAG);
+    g_GuestState[ProcessorID].VmmStack = VmmStackVa;
+
+    if (g_GuestState[ProcessorID].VmmStack == NULL)
+    {
+        DbgPrint("[*] Error in allocating VMM Stack\n");
+        return FALSE;
+    }
+    RtlZeroMemory(g_GuestState[ProcessorID].VmmStack, VMM_STACK_SIZE);
+
+    DbgPrint("[*] VMM Stack for logical processor %d : %llx\n", ProcessorID, g_GuestState[ProcessorID].VmmStack);
+
+    return TRUE;
+}
+
+BOOLEAN
+AllocateMsrBitmap(int ProcessorID)
+{
+    //
+    // Allocate memory for MsrBitmap
+    //
+    g_GuestState[ProcessorID].MsrBitmap = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, POOLTAG); // should be aligned
+
+    if (g_GuestState[ProcessorID].MsrBitmap == NULL)
+    {
+        DbgPrint("[*] Error in allocating MSRBitMap.\n");
+        return FALSE;
+    }
+    RtlZeroMemory(g_GuestState[ProcessorID].MsrBitmap, PAGE_SIZE);
+
+    g_GuestState[ProcessorID].MsrBitmapPhysicalAddr = VirtualToPhysicalAddress(g_GuestState[ProcessorID].MsrBitmap);
+
+    DbgPrint("[*] MSR Bitmap address : %llx\n", g_GuestState[ProcessorID].MsrBitmap);
+
+    //
+    // For testing purpose :
+    //
+    // SetMsrBitmap(0xc0000082, ProcessorID, TRUE, TRUE);
 
     return TRUE;
 }

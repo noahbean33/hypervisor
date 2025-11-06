@@ -26,9 +26,7 @@
 #define EPTE_MT_SHIFT    3
 #define EPT_LEVELS       4
 
-//
 // See Table 24-8. Format of Extended-Page-Table Pointer
-//
 typedef union _EPTP
 {
     ULONG64 All;
@@ -43,9 +41,7 @@ typedef union _EPTP
     } Fields;
 } EPTP, *PEPTP;
 
-//
 // See Table 28-1.
-//
 typedef union _EPT_PML4E
 {
     ULONG64 All;
@@ -65,9 +61,7 @@ typedef union _EPT_PML4E
     } Fields;
 } EPT_PML4E, *PEPT_PML4E;
 
-//
 // See Table 28-3
-//
 typedef union _EPT_PDPTE
 {
     ULONG64 All;
@@ -87,9 +81,7 @@ typedef union _EPT_PDPTE
     } Fields;
 } EPT_PDPTE, *PEPT_PDPTE;
 
-//
 // See Table 28-5
-//
 typedef union _EPT_PDE
 {
     ULONG64 All;
@@ -109,9 +101,7 @@ typedef union _EPT_PDE
     } Fields;
 } EPT_PDE, *PEPT_PDE;
 
-//
 // See Table 28-6
-//
 typedef union _EPT_PTE
 {
     ULONG64 All;

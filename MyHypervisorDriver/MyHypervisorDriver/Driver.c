@@ -27,41 +27,14 @@ DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
             DriverObject->MajorFunction[Index] = DrvUnsupported;
 
         DbgPrint("[*] Setting Devices major functions.\n");
-
         DriverObject->MajorFunction[IRP_MJ_CLOSE]          = DrvClose;
         DriverObject->MajorFunction[IRP_MJ_CREATE]         = DrvCreate;
-        DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DrvIoctlDispatcher;
+        DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DrvIOCTLDispatcher;
         DriverObject->MajorFunction[IRP_MJ_READ]           = DrvRead;
         DriverObject->MajorFunction[IRP_MJ_WRITE]          = DrvWrite;
 
         DriverObject->DriverUnload = DrvUnload;
-
         IoCreateSymbolicLink(&DosDeviceName, &DriverName);
-    }
-    __try
-    {
-        //
-        // Initiating EPTP and VMX
-        //
-        PEPTP EPTP = InitializeEptp();
-
-        InitiateVmx();
-
-        for (size_t i = 0; i < (100 * PAGE_SIZE) - 1; i++)
-        {
-            void * TempAsm = "\xF4";
-            memcpy(g_VirtualGuestMemoryAddress + i, TempAsm, 1);
-        }
-
-        //
-        // Launching VM for Test (in the 0th virtual processor)
-        //
-        int ProcessorID = 0;
-
-        LaunchVm(ProcessorID, EPTP);
-    }
-    __except (GetExceptionCode())
-    {
     }
 
     return NtStatus;
@@ -83,9 +56,31 @@ DrvCreate(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     DbgPrint("[*] DrvCreate Called !\n");
 
     //
-    // Call VMPTRST
+    // *** Start Virtualizing Current System ***
     //
-    //	VmptrstInstruction();
+
+    //
+    // Initiating EPTP and VMX
+    //
+    PEPTP EPTP = InitializeEptp();
+    InitializeVmx();
+
+    int LogicalProcessorsCount = KeQueryActiveProcessorCount(0);
+
+    for (size_t i = 0; i < LogicalProcessorsCount; i++)
+    {
+        // Launching VM for Test (in the all logical processor)
+        int ProcessorID = i;
+
+        // Allocating VMM Stack
+        AllocateVmmStack(ProcessorID);
+
+        // Allocating MSR Bit
+        AllocateMsrBitmap(ProcessorID);
+
+        RunOnProcessor(i, EPTP, VmxSaveState);
+        DbgPrint("\n======================================================================================================\n", ProcessorID);
+    }
 
     Irp->IoStatus.Status      = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
@@ -123,9 +118,7 @@ DrvClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     DbgPrint("[*] DrvClose Called !\n");
 
-    //
-    // executing VMXOFF on every logical processor
-    //
+    // executing VMXOFF (From CPUID) on every logical processor
     TerminateVmx();
 
     Irp->IoStatus.Status      = STATUS_SUCCESS;
@@ -174,15 +167,15 @@ PrintChars(
 }
 
 NTSTATUS
-DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+DrvIOCTLDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
     PIO_STACK_LOCATION IrpStack;                  // Pointer to current stack location
     NTSTATUS           NtStatus = STATUS_SUCCESS; // Assume success
     ULONG              InBufLength;               // Input buffer length
     ULONG              OutBufLength;              // Output buffer length
     PCHAR              InBuf, OutBuf;             // pointer to Input and output buffer
-    PCHAR              Data    = "This String is from Device Driver !!!";
-    size_t             DataLen = strlen(Data) + 1; // Length of data including null
+    PCHAR              data    = "This String is from Device Driver !!!";
+    size_t             datalen = strlen(data) + 1; // Length of data including null
     PMDL               Mdl     = NULL;
     PCHAR              Buffer  = NULL;
 
@@ -243,17 +236,17 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         // Write to the buffer over-writes the input buffer content
         //
 
-        RtlCopyBytes(OutBuf, Data, OutBufLength);
+        RtlCopyBytes(OutBuf, data, OutBufLength);
 
         DbgPrint(("\tData to User : "));
-        PrintChars(OutBuf, DataLen);
+        PrintChars(OutBuf, datalen);
 
         //
         // Assign the length of the data copied to IoStatus.Information
         // of the Irp and complete the Irp.
         //
 
-        Irp->IoStatus.Information = (OutBufLength < DataLen ? OutBufLength : DataLen);
+        Irp->IoStatus.Information = (OutBufLength < datalen ? OutBufLength : datalen);
 
         //
         // When the Irp is completed the content of the SystemBuffer
@@ -431,14 +424,15 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
             NtStatus = STATUS_INSUFFICIENT_RESOURCES;
             break;
         }
+
         //
         // Write to the buffer
         //
 
-        RtlCopyBytes(Buffer, Data, OutBufLength);
+        RtlCopyBytes(Buffer, data, OutBufLength);
 
         DbgPrint("\tData to User : %s\n", Buffer);
-        PrintChars(Buffer, DataLen);
+        PrintChars(Buffer, datalen);
 
         MmUnlockPages(Mdl);
 
@@ -453,7 +447,7 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         // of the Irp and complete the Irp.
         //
 
-        Irp->IoStatus.Information = (OutBufLength < DataLen ? OutBufLength : DataLen);
+        Irp->IoStatus.Information = (OutBufLength < datalen ? OutBufLength : datalen);
 
         break;
 
@@ -551,12 +545,12 @@ DrvIoctlDispatcher(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         // Write data to be sent to the user in this buffer
         //
 
-        RtlCopyBytes(Buffer, Data, OutBufLength);
+        RtlCopyBytes(Buffer, data, OutBufLength);
 
         DbgPrint("\tData to User : ");
-        PrintChars(Buffer, DataLen);
+        PrintChars(Buffer, datalen);
 
-        Irp->IoStatus.Information = (OutBufLength < DataLen ? OutBufLength : DataLen);
+        Irp->IoStatus.Information = (OutBufLength < datalen ? OutBufLength : datalen);
 
         //
         // NOTE: Changes made to the  SystemBuffer are not copied

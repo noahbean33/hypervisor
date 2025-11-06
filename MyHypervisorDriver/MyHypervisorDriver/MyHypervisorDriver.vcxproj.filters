@@ -38,9 +38,6 @@
     <ClCompile Include="EPT.c">
       <Filter>Source Files\Memory</Filter>
     </ClCompile>
-    <ClCompile Include="ProtectedMode.c">
-      <Filter>Source Files\Common</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MSR.h">
@@ -55,15 +52,15 @@
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ProtectedMode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="Main.asm">
       <Filter>Assembly</Filter>
     </MASM>
     <MASM Include="VMExitHandler.asm">
+      <Filter>Assembly</Filter>
+    </MASM>
+    <MASM Include="VMXState.asm">
       <Filter>Assembly</Filter>
     </MASM>
   </ItemGroup>
