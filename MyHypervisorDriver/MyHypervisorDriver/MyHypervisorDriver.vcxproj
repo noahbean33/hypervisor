@@ -27,6 +27,7 @@
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>KMDF</DriverType>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <SpectreMitigation>false</SpectreMitigation>
     <Driver_SpectreMitigation>false</Driver_SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -36,6 +37,7 @@
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>KMDF</DriverType>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <SpectreMitigation>false</SpectreMitigation>
     <Driver_SpectreMitigation>false</Driver_SpectreMitigation>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -58,10 +60,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
       <EntryPointSymbol>DriverEntry</EntryPointSymbol>
+      <AdditionalLibraryDirectories>%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -77,21 +82,33 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="EPT.c" />
-    <ClCompile Include="Memory.c" />
+    <ClCompile Include="Ept.c" />
+    <ClCompile Include="HypervisorRoutines.c" />
+    <ClCompile Include="Invept.c" />
+    <ClCompile Include="VmxRegions.c" />
     <ClCompile Include="Driver.c" />
-    <ClCompile Include="Processor.c" />
-    <ClCompile Include="VMX.c" />
+    <ClCompile Include="Common.c" />
+    <ClCompile Include="Vmcall.c" />
+    <ClCompile Include="Vmx.c" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="Main.asm" />
-    <MASM Include="VMExitHandler.asm" />
-    <MASM Include="VMXState.asm" />
+    <MASM Include="AsmEpt.asm" />
+    <MASM Include="AsmCommon.asm" />
+    <MASM Include="AsmSegmentRegs.asm" />
+    <MASM Include="AsmVmexitHandler.asm" />
+    <MASM Include="AsmVmxOperation.asm" />
+    <MASM Include="AsmVmxContextState.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VMX.h" />
-    <ClInclude Include="EPT.h" />
-    <ClInclude Include="MSR.h" />
+    <ClInclude Include="Dpc.h" />
+    <ClInclude Include="GlobalVariables.h" />
+    <ClInclude Include="HypervisorRoutines.h" />
+    <ClInclude Include="InlineAsm.h" />
+    <ClInclude Include="Invept.h" />
+    <ClInclude Include="Vmcall.h" />
+    <ClInclude Include="Vmx.h" />
+    <ClInclude Include="Ept.h" />
+    <ClInclude Include="Msr.h" />
     <ClInclude Include="Common.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

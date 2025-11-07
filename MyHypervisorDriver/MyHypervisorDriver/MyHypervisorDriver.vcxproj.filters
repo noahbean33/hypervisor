@@ -9,58 +9,94 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="Source Files\Memory">
-      <UniqueIdentifier>{558c8229-1c77-4eb0-807f-f7db9e11455c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Assembly">
       <UniqueIdentifier>{6d6e64b5-3942-4270-9f6d-cf370eedaab1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\VMX">
-      <UniqueIdentifier>{aabeca50-1c14-442c-8268-ece54ed257d5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\Common">
       <UniqueIdentifier>{fe16b9fa-aee2-467d-9f51-643057d24250}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\EPT">
+      <UniqueIdentifier>{ec45d147-144f-487e-ae36-966cbc095b2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Hypervisor">
+      <UniqueIdentifier>{aabeca50-1c14-442c-8268-ece54ed257d5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Memory.c">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Driver.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Processor.c">
+    <ClCompile Include="Vmcall.c">
+      <Filter>Source Files\Hypervisor</Filter>
+    </ClCompile>
+    <ClCompile Include="Common.c">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
-    <ClCompile Include="VMX.c">
-      <Filter>Source Files\VMX</Filter>
+    <ClCompile Include="HypervisorRoutines.c">
+      <Filter>Source Files\Hypervisor</Filter>
     </ClCompile>
-    <ClCompile Include="EPT.c">
-      <Filter>Source Files\Memory</Filter>
+    <ClCompile Include="Invept.c">
+      <Filter>Source Files\EPT</Filter>
+    </ClCompile>
+    <ClCompile Include="Ept.c">
+      <Filter>Source Files\EPT</Filter>
+    </ClCompile>
+    <ClCompile Include="VmxRegions.c">
+      <Filter>Source Files\Hypervisor</Filter>
+    </ClCompile>
+    <ClCompile Include="Vmx.c">
+      <Filter>Source Files\Hypervisor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MSR.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="EPT.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VMX.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="InlineAsm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalVariables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Vmcall.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HypervisorRoutines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Msr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Invept.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Ept.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Vmx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Dpc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="Main.asm">
+    <MASM Include="AsmEpt.asm">
       <Filter>Assembly</Filter>
     </MASM>
-    <MASM Include="VMExitHandler.asm">
+    <MASM Include="AsmCommon.asm">
       <Filter>Assembly</Filter>
     </MASM>
-    <MASM Include="VMXState.asm">
+    <MASM Include="AsmSegmentRegs.asm">
+      <Filter>Assembly</Filter>
+    </MASM>
+    <MASM Include="AsmVmxOperation.asm">
+      <Filter>Assembly</Filter>
+    </MASM>
+    <MASM Include="AsmVmxContextState.asm">
+      <Filter>Assembly</Filter>
+    </MASM>
+    <MASM Include="AsmVmexitHandler.asm">
       <Filter>Assembly</Filter>
     </MASM>
   </ItemGroup>
